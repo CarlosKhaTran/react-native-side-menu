@@ -114,12 +114,6 @@ export default class SideMenu extends React.Component {
     });
   }
 
-  componentWillReceiveProps(props: Props): void {
-    if (typeof props.isOpen !== 'undefined' && this.isOpen !== props.isOpen && (props.autoClosing || this.isOpen === false)) {
-      this.openMenu(props.isOpen);
-    }
-  }
-
   onLayoutChange(e: Event) {
     const { width, height } = e.nativeEvent.layout;
     const openMenuOffset = width * this.state.openOffsetMenuPercentage;
@@ -141,13 +135,13 @@ export default class SideMenu extends React.Component {
         </TouchableWithoutFeedback>
       );
     }
-
-    const { width, height } = this.state;
+    const { scalePercent } = this.props
+    const { width, height, openMenuOffset } = this.state;
     const ref = sideMenu => (this.sideMenu = sideMenu);
     const style = [
       styles.frontView,
       { width, height },
-      this.props.animationStyle(this.state.left),
+      this.props.animationStyle(this.state.left, openMenuOffset, scalePercent),
     ];
 
     return (
@@ -291,11 +285,22 @@ SideMenu.defaultProps = {
   onStartShouldSetResponderCapture: () => true,
   onChange: () => {},
   onSliding: () => {},
-  animationStyle: value => ({
+  animationStyle: (value, openMenuOffset, scalePercent) => {
+    const scale = Animated.divide(value, new Animated.Value(openMenuOffset)).interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, scalePercent],
+    });
+    const translateX = value.interpolate({
+      inputRange: [0, openMenuOffset],
+      outputRange: [0, scalePercent*openMenuOffset],
+    });
+    return ({
     transform: [{
-      translateX: value,
+      translateX,
+    },{
+      scale
     }],
-  }),
+  })},
   animationFunction: (prop, value) => Animated.spring(prop, {
     toValue: value,
     friction: 8,
